@@ -42,14 +42,10 @@ def buyLotsOfFruit(orderList):
 
     Returns cost of order
     """
-    totalCost = 0.0
-
-    for order in orderList:
-        totalCost += fruitPrices.get(order[0], 0) * order[1]
 
     return functools.reduce(
-        lambda a, b: fruitPrices.get(a[0], 0) * a[1] + b,
-        orderList,
+        lambda a, b: a + b,
+        [fruitPrices.get(a[0], 0) * a[1] for a in orderList],
     )
 
 
