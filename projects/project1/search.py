@@ -17,8 +17,6 @@ In search.py, you will implement generic search algorithms which are called by
 Pacman agents (in searchAgents.py).
 """
 
-from re import S
-from projects.project1.game import Directions
 import util
 
 
@@ -77,21 +75,6 @@ def tinyMazeSearch(problem):
     return [s, s, w, s, w, w, s, w]
 
 
-def getDirection(c1, c2):
-    x1, y1 = c1
-    x2, y2 = c2
-
-    if x1 > x2:
-        return Directions.WEST
-    elif x1 != x2:
-        return Directions.EAST
-
-    if y1 > y2:
-        return Directions.SOUTH
-    else:
-        return Directions.NORTH
-
-
 def depthFirstSearch(problem: SearchProblem):
     """
     Search the deepest nodes in the search tree first.
@@ -108,10 +91,8 @@ def depthFirstSearch(problem: SearchProblem):
     """
     "*** YOUR CODE HERE ***"
 
-    path = []
     parent = {}
     visited = {}
-
     stack = util.Stack()
     stack.push(problem.getStartState())
 
@@ -119,26 +100,56 @@ def depthFirstSearch(problem: SearchProblem):
         s = stack.pop()
 
         if problem.isGoalState(s):
-            path.append(s)
+            path = []
+
             while s != problem.getStartState():
-                path.append(parent.get(s))
-                s = parent.get(s)
-            path = path[::-1]
-            return [getDirection(path[i], path[i + 1]) for i in range(0, len(path) - 1)]
+                path.append(parent.get(s)[1])
+                s = parent.get(s)[0]
+
+            path.reverse()
+            return path
 
         if not visited.get(s):
             visited[s] = True
 
-        for neighbor in problem.getSuccessors(s):
-            if not visited.get(neighbor[0]):
-                stack.push(neighbor[0])
-                parent[neighbor[0]] = s
+        for neighbor, action, _ in problem.getSuccessors(s):
+            if not visited.get(neighbor):
+                stack.push(neighbor)
+                parent[neighbor] = (s, action)
+
+    return None
 
 
 def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    parent = {}
+    visited = {}
+    stack = util.Queue()
+    stack.push(problem.getStartState())
+
+    while not stack.isEmpty():
+        s = stack.pop()
+
+        if problem.isGoalState(s):
+            path = []
+
+            while s != problem.getStartState():
+                path.append(parent.get(s)[1])
+                s = parent.get(s)[0]
+
+            path.reverse()
+            return path
+
+        if not visited.get(s):
+            visited[s] = True
+
+        for neighbor, action, _ in problem.getSuccessors(s):
+            if not parent.get(neighbor) and not visited.get(neighbor):
+                stack.push(neighbor)
+                parent[neighbor] = (s, action)
+
+    return None
 
 
 def uniformCostSearch(problem: SearchProblem):
