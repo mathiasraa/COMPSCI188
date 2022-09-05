@@ -20,6 +20,29 @@ Pacman agents (in searchAgents.py).
 import util
 
 
+class Node:
+    def __init__(self, val=None, action=None, parent=None, priority=0):
+        self.val = val
+        self.action = action
+        self.parent = parent
+        self.priority = priority
+
+    def __str__(self) -> str:
+        return str(self.val) + str(self.parent)
+
+    def getPath(self):
+        if not self.parent:
+            return []
+
+        return [self.action] + Node.getPath(self.parent)
+
+    def getNodePriorities(self):
+        if not self.parent:
+            return []
+
+        return [self.priority] + Node.getNodePriorities(self.parent)
+
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -91,31 +114,21 @@ def depthFirstSearch(problem: SearchProblem):
     """
     "*** YOUR CODE HERE ***"
 
-    parent = {}
     visited = {}
     stack = util.Stack()
-    stack.push(problem.getStartState())
+    stack.push(Node(val=problem.getStartState()))
 
     while not stack.isEmpty():
         s = stack.pop()
 
-        if problem.isGoalState(s):
-            path = []
+        if problem.isGoalState(s.val):
+            return Node.getPath(s)[::-1]
 
-            while s != problem.getStartState():
-                path.append(parent.get(s)[1])
-                s = parent.get(s)[0]
+        if not visited.get(s.val):
+            visited[s.val] = True
 
-            path.reverse()
-            return path
-
-        if not visited.get(s):
-            visited[s] = True
-
-        for neighbor, action, _ in problem.getSuccessors(s):
-            if not visited.get(neighbor):
-                stack.push(neighbor)
-                parent[neighbor] = (s, action)
+            for neighbor, action, _ in problem.getSuccessors(s.val):
+                stack.push(Node(val=neighbor, action=action, parent=s))
 
     return None
 
@@ -123,39 +136,53 @@ def depthFirstSearch(problem: SearchProblem):
 def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    parent = {}
     visited = {}
     stack = util.Queue()
-    stack.push(problem.getStartState())
+    stack.push(Node(val=problem.getStartState()))
 
     while not stack.isEmpty():
         s = stack.pop()
 
-        if problem.isGoalState(s):
-            path = []
+        if problem.isGoalState(s.val):
+            return Node.getPath(s)[::-1]
 
-            while s != problem.getStartState():
-                path.append(parent.get(s)[1])
-                s = parent.get(s)[0]
+        if not visited.get(s.val):
+            visited[s.val] = True
 
-            path.reverse()
-            return path
+            for neighbor, action, _ in problem.getSuccessors(s.val):
+                stack.push(Node(val=neighbor, action=action, parent=s))
 
-        if not visited.get(s):
-            visited[s] = True
-
-        for neighbor, action, _ in problem.getSuccessors(s):
-            if not parent.get(neighbor) and not visited.get(neighbor):
-                stack.push(neighbor)
-                parent[neighbor] = (s, action)
-
-    return None
+    return []
 
 
 def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    visited = {}
+    stack = util.PriorityQueue()
+    stack.push(Node(val=problem.getStartState()), priority=0)
+
+    while not stack.isEmpty():
+        s = stack.pop()
+
+        if problem.isGoalState(s.val):
+            return Node.getPath(s)[::-1]
+
+        if not visited.get(s.val):
+            visited[s.val] = True
+
+            for neighbor, action, cost in problem.getSuccessors(s.val):
+                stack.push(
+                    Node(
+                        val=neighbor,
+                        action=action,
+                        parent=s,
+                        priority=s.priority + cost,
+                    ),
+                    priority=s.priority + cost,
+                )
+
+    return []
 
 
 def nullHeuristic(state, problem=None):
@@ -169,7 +196,35 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    visited = {}
+    stack = util.PriorityQueue()
+    start_state = problem.getStartState()
+    stack.push(
+        Node(val=start_state, priority=heuristic(start_state, problem)),
+        heuristic(start_state, problem),
+    )
+
+    while not stack.isEmpty():
+        s = stack.pop()
+
+        if problem.isGoalState(s.val):
+            return Node.getPath(s)[::-1]
+
+        if not visited.get(s.val):
+            visited[s.val] = True
+
+            for neighbor, action, cost in problem.getSuccessors(s.val):
+                stack.push(
+                    Node(
+                        val=neighbor,
+                        action=action,
+                        parent=s,
+                        priority=cost + s.priority,
+                    ),
+                    priority=cost + s.priority + heuristic(neighbor, problem),
+                )
+
+    return []
 
 
 # Abbreviations
