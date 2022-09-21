@@ -434,7 +434,6 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     admissible (as well as consistent).
     """
     corners = problem.corners  # These are the corner coordinates
-    walls = problem.walls  # These are the walls of the maze, as a Grid (game.py)
 
     # Calculate manhattan distance for all non-visited corners
     distances = [
@@ -444,7 +443,7 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     ]
 
     # Return max distance
-    return max(distances) if len(distances) > 0 else 0
+    return max(distances or [0])
 
 
 class AStarCornersAgent(SearchAgent):
@@ -555,14 +554,29 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
 
+    # Store calculations in dictionary to reduce runtime
+    def cachedDistance(p1, p2, state):
+        fromCache = problem.heuristicInfo.get((p1, p2))
+
+        if fromCache:
+            return fromCache
+        else:
+            distance = mazeDistance(p1, p2, state)
+            problem.heuristicInfo[p1, p2] = distance
+            return distance
+
     # Calculate maze distance to all dots
     distances = [
-        mazeDistance((x, y), position, problem.startingGameState)
+        cachedDistance(
+            (x, y),
+            position,
+            problem.startingGameState,
+        )
         for x, y in foodGrid.asList()
     ]
 
     # Return largest distance
-    return max(distances) if len(distances) > 0 else 0
+    return max(distances or [0])
 
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -599,7 +613,8 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        return search.bfs(problem)
+
+        return search.ucs(problem)
 
 
 class AnyFoodSearchProblem(PositionSearchProblem):
