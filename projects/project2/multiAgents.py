@@ -14,6 +14,9 @@
 
 from math import inf
 from statistics import mean
+from typing import Tuple
+from searchAgents import PositionSearchProblem
+import search
 from util import manhattanDistance
 from game import Directions
 import random, util
@@ -297,53 +300,54 @@ def betterEvaluationFunction(currentGameState: GameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: Food value is calculated by inverting the value of all distances to food
+                 (smaller distance means increased value),
+                 and then summing this. Ghost value is the same concept, only magnified by 500.
+                 This makes pacman prioritize to eat ghosts that have a zero scaredTimer.
     """
     "*** YOUR CODE HERE ***"
     currentScore = currentGameState.getScore()
     pos = currentGameState.getPacmanPosition()
-
-    ghostDistances = [
-        manhattanDistance(g, pos) for g in currentGameState.getGhostPositions()
-    ]
-    minGhostIndex = min(range(len(ghostDistances)), key=ghostDistances.__getitem__)
-
-    closestGhost = currentGameState.getGhostStates()[minGhostIndex]
-
-    # if currentGameState.isLose() and closestGhost.scaredTimer == 0:
-    #     return -inf
-    # if currentGameState.isWin():
-    #     return 10000
-
     food = currentGameState.getFood()
-
-    ghostBonus = (
-        (1 / ghostDistances[minGhostIndex]) ** 100
-        if closestGhost.scaredTimer != 0
-        else 0
-    )
-
     ghosts = currentGameState.getGhostStates()
-    ghostDistances = [
-        manhattanDistance(pos, tuple(map(int, ghost.configuration.pos)))
-        for ghost in ghosts
-    ]
-    scaredTimers = [ghost.scaredTimer for ghost in ghosts]
+    capsules = currentGameState.getCapsules()
 
-    distFromScared = [
-        dist for dist, timer in zip(ghostDistances, scaredTimers) if timer > 2
+    distGhosts = [
+        manhattanDistance(pos, g.getPosition()) for g in ghosts if g.scaredTimer != 0
     ]
-    ghostBonus = sum((190 / dist for dist in distFromScared), 0)
 
-    foods = food.asList()
-    manhattanDistances = [(manhattanDistance(pos, food), food) for food in foods]
-    manhattanNearestFood = [food for dist, food in sorted(manhattanDistances)[:6]]
-    mazeNearestFood = sorted(
-        manhattanDistance(pos, food) for food in manhattanNearestFood
+    distFood = sorted([(manhattanDistance(pos, food), food) for food in food.asList()])
+    distFood = [mazeDistance(pos, food, currentGameState) for d, food in distFood[:6]]
+    foodValue = sum(1 / d for d in distFood) if distFood else 0
+
+    distCapsules = [manhattanDistance(pos, g) for g in capsules]
+    capsulesValue = sum((1 / cap) for cap in distCapsules)
+    ghostValue = sum(((1 / dist) * 500 for dist in distGhosts if dist != 0)) * 0.8
+
+    return currentScore * 1.4 + foodValue + ghostValue + capsulesValue
+
+
+def mazeDistance(
+    point1: Tuple[int, int], point2: Tuple[int, int], gameState: GameState
+) -> int:
+    """
+    Returns the maze distance between any two points, using the search functions
+    you have already built. The gameState can be any game state -- Pacman's
+    position in that state is ignored.
+
+    Example usage: mazeDistance( (2,4), (5,6), gameState)
+
+    This might be a useful helper function for your ApproximateSearchAgent.
+    """
+    x1, y1 = point1
+    x2, y2 = point2
+    walls = gameState.getWalls()
+    assert not walls[x1][y1], "point1 is a wall: " + str(point1)
+    assert not walls[x2][y2], "point2 is a wall: " + str(point2)
+    prob = PositionSearchProblem(
+        gameState, start=point1, goal=point2, warn=False, visualize=False
     )
-    foodBonus = sum(1 / d for d in mazeNearestFood) if mazeNearestFood else 0
-
-    return currentScore + foodBonus + ghostBonus
+    return len(search.bfs(prob))
 
 
 # Abbreviation
